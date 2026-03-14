@@ -15,6 +15,14 @@
       </div>
       
       <div class="flex items-center gap-3">
+        <!-- Model Quick Select -->
+        <ModelQuickSelect
+          v-if="!sessionStarted"
+          :model-id="currentModelId"
+          :is-loading="isModelLoading"
+          @select="handleModelSwitch"
+          @open-advanced="showModelSelector = true"
+        />
         <div class="text-sm text-gray-400">{{ fps }} FPS</div>
         <button 
           v-if="!sessionStarted"
@@ -44,12 +52,21 @@
 
       <!-- Loading Overlay -->
       <div 
-        v-if="isInitializing"
+        v-if="isInitializing || isModelLoading"
         class="absolute inset-0 bg-gray-900/80 flex items-center justify-center"
       >
-        <div class="text-center text-white">
+        <div class="text-center text-white max-w-sm">
           <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <div>Initializing camera...</div>
+          <div class="mb-2">{{ modelLoadingProgress.message || 'Initializing camera...' }}</div>
+          <div v-if="modelLoadingProgress.progress > 0" class="w-full bg-gray-700 rounded-full h-2 mt-3">
+            <div 
+              class="bg-primary-500 h-2 rounded-full transition-all duration-300"
+              :style="{ width: `${modelLoadingProgress.progress}%` }"
+            />
+          </div>
+          <div v-if="modelMetadata" class="text-xs text-gray-400 mt-2">
+            Loading {{ modelMetadata.name }} ({{ modelMetadata.modelSize }})
+          </div>
         </div>
       </div>
 
@@ -225,6 +242,14 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Model Selector Modal -->
+    <ModelSelector
+      :show="showModelSelector"
+      :initial-model="currentModelId"
+      @select="handleModelSwitch"
+      @close="showModelSelector = false"
+    />
   </div>
 </template>
 
@@ -236,6 +261,7 @@ import { useExercisesStore } from '~/stores/exercises';
 import { useAuthStore } from '~/stores/auth';
 import { getScoreColor } from '~/utils/pose/config';
 import type { Exercise, ExerciseSession } from '~/types';
+import type { ModelId } from '~/utils/pose/models';
 
 const auth = useAuthStore();
 const sessionStore = useSessionStore();
@@ -246,18 +272,25 @@ const videoElement = ref<HTMLVideoElement | null>(null);
 const canvasElement = ref<HTMLCanvasElement | null>(null);
 
 const {
+  currentModelId,
   isInitialized,
   isProcessing,
+  isModelLoading,
+  modelLoadingProgress,
+  modelMetadata,
   error,
   currentState,
   repCount,
   formScores,
   feedback,
   fps,
+  spineAnalysis,
+  supportsSpineAnalysis,
   initialize,
   start,
   stop,
   reset,
+  switchModel,
   setOnFrameCallback,
   getAverageFormScore,
 } = usePoseDetection();
@@ -266,10 +299,24 @@ const isInitializing = ref(true);
 const sessionStarted = ref(false);
 const showExerciseSelector = ref(false);
 const showCompleteModal = ref(false);
+const showModelSelector = ref(false);
 const selectedExercise = ref<Exercise | null>(null);
 const completedSession = ref<ExerciseSession | null>(null);
 const repAnimating = ref(false);
 const previousRepCount = ref(0);
+
+// Handle model switching
+async function handleModelSwitch(modelId: ModelId) {
+  try {
+    await switchModel(modelId);
+    // Re-initialize camera with new model if needed
+    if (videoElement.value && canvasElement.value) {
+      await initializeCamera();
+    }
+  } catch (err) {
+    console.error('Failed to switch model:', err);
+  }
+}
 
 const exercises = computed(() => exercisesStore.exercises);
 
