@@ -1,0 +1,239 @@
+// PhysioTracker Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PHYSIO
+  PATIENT
+  ADMIN
+}
+
+enum ExerciseType {
+  REPETITION
+  HOLD
+  TIMED
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// User management
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  role              Role     @default(PATIENT)
+  avatarUrl         String?
+  calibrationData   Json?    // User-specific angle calibrations
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  isActive          Boolean  @default(true)
+
+  // Relationships
+  physioPatients    PhysioPatient[] @relation("PhysioRelation")
+  patientPhysios    PhysioPatient[] @relation("PatientRelation")
+  routineAssignments RoutineAssignment[] @relation("PatientRoutines")
+  assignedRoutines  RoutineAssignment[] @relation("AssignedByPhysio")
+  exerciseSessions  ExerciseSession[]
+  createdExercises  Exercise[]
+  createdRoutines   Routine[]
+  refreshTokens     RefreshToken[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+// Physio-Patient relationship
+model PhysioPatient {
+  id        String   @id @default(uuid())
+  physioId  String
+  patientId String
+  physio    User     @relation("PhysioRelation", fields: [physioId], references: [id], onDelete: Cascade)
+  patient   User     @relation("PatientRelation", fields: [patientId], references: [id], onDelete: Cascade)
+  notes     String?
+  createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+
+  @@unique([physioId, patientId])
+  @@index([physioId])
+  @@index([patientId])
+}
+
+// Exercise definitions
+model Exercise {
+  id              String       @id @default(uuid())
+  name            String
+  description     String?
+  type            ExerciseType @default(REPETITION)
+  muscleGroups    String[]     // e.g., ["quadriceps", "glutes", "core"]
+  difficulty      Int          @default(1) // 1-5
+  
+  // Detection configuration (JSON for flexibility)
+  checkpoints     Json         // State machine checkpoints
+  formChecks      Json         // Form validation rules
+  defaultConfig   Json         // Default thresholds
+  
+  // Guidance
+  instructions    String[]
+  cues            String[]     // Coaching cues
+  demoAnimation   Json?        // 2D skeleton animation data
+  thumbnailUrl    String?
+  videoUrl        String?
+  
+  // Metadata
+  isPublic        Boolean      @default(false)
+  isBuiltIn       Boolean      @default(false)
+  createdById     String?
+  createdBy       User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relationships
+  routineExercises RoutineExercise[]
+  exerciseSessions ExerciseSession[]
+
+  @@index([name])
+  @@index([type])
+  @@index([isPublic])
+}
+
+// Routines (collections of exercises)
+model Routine {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  duration    Int?     // Estimated duration in minutes
+  isPublic    Boolean  @default(false)
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  exercises   RoutineExercise[]
+  assignments RoutineAssignment[]
+
+  @@index([name])
+  @@index([isPublic])
+}
+
+// Exercises within a routine
+model RoutineExercise {
+  id          String   @id @default(uuid())
+  routineId   String
+  exerciseId  String
+  routine     Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order       Int      @default(0)
+  sets        Int      @default(3)
+  reps        Int?     // For repetition exercises
+  holdSeconds Int?     // For hold exercises
+  restSeconds Int      @default(60)
+  notes       String?
+  
+  @@unique([routineId, exerciseId])
+  @@index([routineId])
+}
+
+// Routine assignments to patients
+model RoutineAssignment {
+  id          String    @id @default(uuid())
+  routineId   String
+  patientId   String
+  assignedById String?
+  routine     Routine   @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  patient     User      @relation("PatientRoutines", fields: [patientId], references: [id], onDelete: Cascade)
+  assignedBy  User?     @relation("AssignedByPhysio", fields: [assignedById], references: [id], onDelete: SetNull)
+  
+  frequency   String?   // e.g., "daily", "3x/week"
+  notes       String?
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([patientId])
+  @@index([routineId])
+}
+
+// Exercise session records
+model ExerciseSession {
+  id          String        @id @default(uuid())
+  userId      String
+  exerciseId  String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise    Exercise      @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  
+  status      SessionStatus @default(IN_PROGRESS)
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+  duration    Int?          // Duration in seconds
+  
+  // Performance metrics
+  repsCompleted   Int       @default(0)
+  repsTarget      Int?
+  holdDuration    Int?      // For hold exercises (seconds)
+  averageFormScore Float?
+  
+  // Detailed form scores
+  formScores  Json?         // { depth: 85, kneeTracking: 90, ... }
+  
+  // Keypoint data for ML training (stored as JSONB)
+  keypointData Json?        // Array of frame data
+  
+  // Session metadata
+  cameraAngle String?       // "front", "side", "45deg"
+  notes       String?
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([startedAt])
+}
+
+// Progress snapshots (aggregated stats)
+model ProgressSnapshot {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime @db.Date
+  
+  // Aggregated metrics
+  totalSessions   Int      @default(0)
+  totalReps       Int      @default(0)
+  totalDuration   Int      @default(0) // seconds
+  averageFormScore Float?
+  
+  // Exercise breakdown
+  exerciseBreakdown Json?  // { "squat": { reps: 50, avgForm: 85 }, ... }
+  
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}

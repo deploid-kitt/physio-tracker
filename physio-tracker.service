@@ -1,0 +1,15 @@
+[Unit]
+Description=PhysioTracker Exercise Tracking Application
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/root/.openclaw/workspace/projects/development/physio-tracker
+ExecStart=/root/.openclaw/workspace/projects/development/physio-tracker/manage.sh start
+ExecStop=/root/.openclaw/workspace/projects/development/physio-tracker/manage.sh stop
+ExecReload=/root/.openclaw/workspace/projects/development/physio-tracker/manage.sh restart
+
+[Install]
+WantedBy=multi-user.target

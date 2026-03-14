@@ -1,0 +1,40 @@
+# PhysioTracker Caddy Configuration
+# Automatic HTTPS with Let's Encrypt
+
+physio.kitt.deploid.io {
+    # API routes - proxy to backend
+    handle /api/* {
+        reverse_proxy backend:3001
+    }
+
+    # Frontend - proxy to Nuxt
+    handle {
+        reverse_proxy frontend:3000
+    }
+
+    # Security headers
+    header {
+        # Enable HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+        # XSS protection
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Remove server header
+        -Server
+    }
+
+    # Compression
+    encode gzip zstd
+
+    # Logging
+    log {
+        output file /data/physio-access.log {
+            roll_size 10MB
+            roll_keep 5
+        }
+    }
+}
