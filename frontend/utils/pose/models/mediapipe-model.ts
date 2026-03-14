@@ -452,18 +452,33 @@ export class MediaPipePoseModel extends BasePoseModel {
  * Factory functions for creating MediaPipe models
  */
 export function createMediaPipeModel(options?: MediaPipeModelOptions): MediaPipePoseModel {
-  return new MediaPipePoseModel(options);
+  return new MediaPipePoseModel({ 
+    runningMode: 'VIDEO',
+    ...options 
+  });
 }
 
 // Convenience factories for each variant
 export function createMediaPipeLite(options?: Omit<MediaPipeModelOptions, 'variant'>): MediaPipePoseModel {
-  return new MediaPipePoseModel({ ...options, variant: 'lite' });
+  return new MediaPipePoseModel({ 
+    runningMode: 'VIDEO',
+    ...options, 
+    variant: 'lite' 
+  });
 }
 
 export function createMediaPipeFull(options?: Omit<MediaPipeModelOptions, 'variant'>): MediaPipePoseModel {
-  return new MediaPipePoseModel({ ...options, variant: 'full' });
+  return new MediaPipePoseModel({ 
+    runningMode: 'VIDEO',
+    ...options, 
+    variant: 'full' 
+  });
 }
 
 export function createMediaPipeHeavy(options?: Omit<MediaPipeModelOptions, 'variant'>): MediaPipePoseModel {
-  return new MediaPipePoseModel({ ...options, variant: 'heavy' });
+  return new MediaPipePoseModel({ 
+    runningMode: 'VIDEO',
+    ...options, 
+    variant: 'heavy' 
+  });
 }

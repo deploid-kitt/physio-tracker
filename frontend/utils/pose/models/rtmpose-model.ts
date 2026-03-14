@@ -48,19 +48,19 @@ const RTMPOSE_CONFIGS: Record<RTMPoseVariant, RTMPoseConfig> = {
     variant: 'body',
     inputSize: { width: 256, height: 192 },
     keypointCount: 17,
-    modelPath: '/models/rtmpose/rtmpose-m-body.onnx',
+    modelPath: 'https://huggingface.co/onnx-community/rtmpose-body/resolve/main/rtmpose-m_simcc-body7_pt-body7_270e-256x192.onnx',
   },
   wholebody: {
     variant: 'wholebody',
     inputSize: { width: 256, height: 192 },
     keypointCount: 133, // Body + hands + face
-    modelPath: '/models/rtmpose/rtmpose-m-wholebody.onnx',
+    modelPath: 'https://huggingface.co/onnx-community/rtmpose-wholebody/resolve/main/rtmpose-m_simcc-wholebody_pt-body7_270e-256x192.onnx',
   },
   coco: {
     variant: 'coco',
     inputSize: { width: 256, height: 192 },
     keypointCount: 17,
-    modelPath: '/models/rtmpose/rtmpose-m-coco.onnx',
+    modelPath: 'https://huggingface.co/onnx-community/rtmpose-coco/resolve/main/rtmpose-m_simcc-coco_pt-coco_270e-256x192.onnx',
   },
 };
 
@@ -216,21 +216,13 @@ export class RTMPoseModel extends BasePoseModel {
       // Determine model path
       const modelPath = this.options.modelPath || this.config.modelPath;
 
-      // Try to load the model, fall back to CDN if local not available
+      // Load the model from CDN
       try {
         this.session = await ort.InferenceSession.create(modelPath, sessionOptions);
-      } catch (localError) {
-        // Try loading from a CDN fallback
-        console.warn(`Local model not found, trying CDN fallback...`);
-        this.reportProgress({
-          status: 'loading',
-          progress: 40,
-          message: 'Downloading model from CDN...',
-        });
-        
-        // In production, you'd host these models on your CDN
-        // For now, we'll create a mock session for development
-        this.session = await this.createMockSession(ort);
+        console.log(`RTMPose ${this.variant} model loaded successfully from ${modelPath}`);
+      } catch (error) {
+        console.error(`Failed to load RTMPose model from ${modelPath}:`, error);
+        throw new Error(`Failed to load RTMPose ${this.variant} model. Please check network connectivity.`);
       }
 
       this.reportProgress({

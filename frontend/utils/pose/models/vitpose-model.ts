@@ -59,7 +59,7 @@ const VITPOSE_CONFIGS: Record<ViTPoseSize, ViTPoseConfig> = {
     embedDim: 384,
     depth: 12,
     numHeads: 6,
-    modelPath: '/models/vitpose/vitpose-s.onnx',
+    modelPath: 'https://huggingface.co/onnx-community/vitpose-small/resolve/main/vitpose-s-coco.onnx',
     modelSizeMB: '~25MB',
   },
   base: {
@@ -69,7 +69,7 @@ const VITPOSE_CONFIGS: Record<ViTPoseSize, ViTPoseConfig> = {
     embedDim: 768,
     depth: 12,
     numHeads: 12,
-    modelPath: '/models/vitpose/vitpose-b.onnx',
+    modelPath: 'https://huggingface.co/onnx-community/vitpose-base/resolve/main/vitpose-b-coco.onnx',
     modelSizeMB: '~90MB',
   },
   large: {
@@ -79,7 +79,7 @@ const VITPOSE_CONFIGS: Record<ViTPoseSize, ViTPoseConfig> = {
     embedDim: 1024,
     depth: 24,
     numHeads: 16,
-    modelPath: '/models/vitpose/vitpose-l.onnx',
+    modelPath: 'https://huggingface.co/onnx-community/vitpose-large/resolve/main/vitpose-l-coco.onnx',
     modelSizeMB: '~310MB',
   },
   huge: {
@@ -89,7 +89,7 @@ const VITPOSE_CONFIGS: Record<ViTPoseSize, ViTPoseConfig> = {
     embedDim: 1280,
     depth: 32,
     numHeads: 16,
-    modelPath: '/models/vitpose/vitpose-h.onnx',
+    modelPath: 'https://huggingface.co/onnx-community/vitpose-huge/resolve/main/vitpose-h-coco.onnx',
     modelSizeMB: '~640MB',
   },
 };
