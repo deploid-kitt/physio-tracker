@@ -259,6 +259,9 @@ export class MediaPipePoseModel extends BasePoseModel {
    * Warmup the model
    */
   private async warmup(): Promise<void> {
+    // Only warmup in browser environment
+    if (typeof document === 'undefined') return;
+    
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 64;

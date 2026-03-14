@@ -248,11 +248,13 @@ export class YOLOPoseModel extends BasePoseModel {
         message: 'Setting up preprocessing...',
       });
 
-      // Create preprocessing canvas
-      this.preprocessCanvas = document.createElement('canvas');
-      this.preprocessCanvas.width = this.config.inputSize;
-      this.preprocessCanvas.height = this.config.inputSize;
-      this.preprocessCtx = this.preprocessCanvas.getContext('2d');
+      // Create preprocessing canvas (browser only)
+      if (typeof document !== 'undefined') {
+        this.preprocessCanvas = document.createElement('canvas');
+        this.preprocessCanvas.width = this.config.inputSize;
+        this.preprocessCanvas.height = this.config.inputSize;
+        this.preprocessCtx = this.preprocessCanvas.getContext('2d');
+      }
 
       this.isInitialized = true;
       this.reportProgress({

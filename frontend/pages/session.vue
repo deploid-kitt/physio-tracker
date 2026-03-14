@@ -271,6 +271,31 @@ const router = useRouter();
 const videoElement = ref<HTMLVideoElement | null>(null);
 const canvasElement = ref<HTMLCanvasElement | null>(null);
 
+// Initialize pose detection composable only on client side
+const poseDetection = process.client ? usePoseDetection() : {
+  currentModelId: ref('mediapipe-pose-heavy' as ModelId),
+  isInitialized: ref(false),
+  isProcessing: ref(false),
+  isModelLoading: ref(false),
+  modelLoadingProgress: ref({ status: 'idle' as const, progress: 0, message: '' }),
+  modelMetadata: ref(null),
+  error: ref(null),
+  currentState: ref('standing' as const),
+  repCount: ref(0),
+  formScores: ref(null),
+  feedback: ref({ issues: [], cues: [] }),
+  fps: ref(0),
+  spineAnalysis: ref(null),
+  supportsSpineAnalysis: ref(false),
+  initialize: async () => {},
+  start: async () => {},
+  stop: () => {},
+  reset: () => {},
+  switchModel: async () => {},
+  setOnFrameCallback: () => {},
+  getAverageFormScore: () => null,
+};
+
 const {
   currentModelId,
   isInitialized,
@@ -293,7 +318,7 @@ const {
   switchModel,
   setOnFrameCallback,
   getAverageFormScore,
-} = usePoseDetection();
+} = poseDetection;
 
 const isInitializing = ref(true);
 const sessionStarted = ref(false);

@@ -241,11 +241,13 @@ export class ViTPoseModel extends BasePoseModel {
         message: 'Warming up transformer...',
       });
 
-      // Create preprocessing canvas
-      this.preprocessCanvas = document.createElement('canvas');
-      this.preprocessCanvas.width = this.config.inputSize.width;
-      this.preprocessCanvas.height = this.config.inputSize.height;
-      this.preprocessCtx = this.preprocessCanvas.getContext('2d');
+      // Create preprocessing canvas (browser only)
+      if (typeof document !== 'undefined') {
+        this.preprocessCanvas = document.createElement('canvas');
+        this.preprocessCanvas.width = this.config.inputSize.width;
+        this.preprocessCanvas.height = this.config.inputSize.height;
+        this.preprocessCtx = this.preprocessCanvas.getContext('2d');
+      }
 
       // Warmup run
       await this.warmup();
